@@ -391,6 +391,37 @@ with st.sidebar:
     pas_m = st.selectbox("Repères profil (m)", [1, 2, 5, 10, 20], index=2,
                          help="Espacement des points sur le graphique profil")
     st.markdown("---")
+
+    # ── Convertisseur ° ↔ % ─────────────────────────────────────
+    st.markdown("**🔄 Convertisseur pente**")
+    conv_col1, conv_col2 = st.columns(2)
+    with conv_col1:
+        deg_in = st.number_input("Degrés (°)",
+                                  value=0.0, step=0.1, format="%.1f",
+                                  min_value=0.0, max_value=89.0,
+                                  key="conv_deg",
+                                  help="Saisissez un angle en degrés")
+        if deg_in > 0:
+            pct_out = np.tan(np.radians(deg_in)) * 100
+            st.markdown(
+                f"<div style='background:#dbeafe;border-radius:6px;padding:6px 10px;"
+                f"text-align:center;font-size:13px;color:#1e3a5f;font-weight:600'>"
+                f"→ {pct_out:.2f} %</div>",
+                unsafe_allow_html=True)
+    with conv_col2:
+        pct_in = st.number_input("Pourcent (%)",
+                                  value=0.0, step=0.5, format="%.1f",
+                                  min_value=0.0, max_value=5000.0,
+                                  key="conv_pct",
+                                  help="Saisissez une pente en pourcentage")
+        if pct_in > 0:
+            deg_out = np.degrees(np.arctan(pct_in / 100))
+            st.markdown(
+                f"<div style='background:#dcfce7;border-radius:6px;padding:6px 10px;"
+                f"text-align:center;font-size:13px;color:#166534;font-weight:600'>"
+                f"→ {deg_out:.2f} °</div>",
+                unsafe_allow_html=True)
+    st.markdown("---")
     st.caption("**4 Experience** — Simulateur piste & airbag")
 
 # ════════════════════════════════════════════════════════════════
@@ -490,13 +521,12 @@ with tab1:
                                    key=f"cd{i}", label_visibility="collapsed",
                                    format_func=lambda x: "☀️ Sec" if x == "sec" else "🌧️ Hum.")
 
-        if sec["cat"] != cat or sec["cond"] != cond:
-            sec["mu_ovr"] = None
-
         mu_auto = get_mu(cat, var, cond)
-        mu_val  = sec["mu_ovr"] if sec["mu_ovr"] is not None else mu_auto
+        # La clé inclut cat+cond : quand la surface change, le widget
+        # est recréé à neuf et s'initialise automatiquement à mu_auto.
+        mu_key  = f"m{i}_{cat}_{cond}".replace(" ", "_").replace("️", "").replace("❄", "").replace("🟩", "").replace("🛝", "").replace("⛷", "")
         mu      = cols[6].number_input(
-            "μ", value=float(mu_val), key=f"m{i}",
+            "μ", value=float(mu_auto), key=mu_key,
             label_visibility="collapsed", step=0.001, format="%.3f",
             min_value=0.001, max_value=1.0,
             help=f"μ auto = {mu_auto:.3f} — modifiable librement")

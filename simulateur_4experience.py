@@ -141,25 +141,30 @@ section[data-testid="stSidebar"] .stNumberInput input {
 # ════════════════════════════════════════════════════════════════
 g = 9.80665
 
-# Neige naturelle : un seul μ (pas de distinction sec/humide car déjà intégré)
-# Revêtements synthétiques : μ sec et μ humide distincts
+# Neige naturelle : un seul μ (pas de fartage sur neige naturelle)
+# Revêtements synthétiques : μ sec et μ fart distincts — mesures terrain 13/05/2025
+# Étalon : Mr Snow sec = 0.130 (calibration)
 SURFACES_DB = {
-    "❄️ Neige glacée":   {"—": {"sec": 0.03, "humide": 0.03}},
-    "❄️ Neige dure":     {"—": {"sec": 0.07, "humide": 0.07}},
-    "❄️ Neige normale":  {"—": {"sec": 0.10, "humide": 0.10}},
-    "❄️ Neige humide":   {"—": {"sec": 0.18, "humide": 0.18}},
-    "❄️ Neige fraîche":  {"—": {"sec": 0.12, "humide": 0.12}},
-    "🟩 Neveplast":       {"—": {"sec": 0.12, "humide": 0.10}},
-    "🟩 PearlSlide":      {"—": {"sec": 0.11, "humide": 0.10}},
-    "🟩 PearlSnow":       {"—": {"sec": 0.11, "humide": 0.10}},
-    "🟩 DreamSlide":      {"—": {"sec": 0.12, "humide": 0.10}},
-    "🟩 DreamSnow":       {"—": {"sec": 0.15, "humide": 0.14}},
-    "🛝 Caoutchouc":      {"—": {"sec": 0.25, "humide": 0.20}},
-    "⛷️ Personnalisé":    {"—": {"sec": 0.10, "humide": 0.10}},
+    "❄️ Neige glacée":   {"—": {"sec": 0.03, "fart": 0.03}},
+    "❄️ Neige dure":     {"—": {"sec": 0.07, "fart": 0.07}},
+    "❄️ Neige normale":  {"—": {"sec": 0.10, "fart": 0.10}},
+    "❄️ Neige humide":   {"—": {"sec": 0.18, "fart": 0.18}},
+    "❄️ Neige fraîche":  {"—": {"sec": 0.12, "fart": 0.12}},
+    "🟩 Mr Snow":         {"—": {"sec": 0.130, "fart": 0.050}},  # mesuré
+    "🟩 Neveplast":       {"—": {"sec": 0.12,  "fart": 0.10}},
+    "🟩 PearlSlide":      {"—": {"sec": 0.180, "fart": 0.074}},  # mesuré (=PearSlide)
+    "🟩 PearlSnow":       {"—": {"sec": 0.197, "fart": 0.075}},  # mesuré
+    "🟩 DreamSlide":      {"—": {"sec": 0.157, "fart": 0.083}},  # mesuré
+    "🟩 DreamSnow":       {"—": {"sec": 0.224, "fart": 0.126}},  # mesuré
+    "🛝 Caoutchouc":      {"—": {"sec": 0.25,  "fart": 0.20}},
+    "⛷️ Personnalisé":    {"—": {"sec": 0.10,  "fart": 0.10}},
 }
 CATS = list(SURFACES_DB.keys())
 
 def get_mu(cat, var, cond):
+    # Compatibilité ascendante : "humide" est désormais "fart"
+    if cond == "humide":
+        cond = "fart"
     return SURFACES_DB.get(cat, {}).get(var, {}).get(cond, 0.10)
 
 # ════════════════════════════════════════════════════════════════
@@ -507,7 +512,7 @@ def fig_sections_table(sections):
     headers = ["#", "Nom", "Angle (°)", "Longueur (m)", "Surface", "Condition", "μ"]
     rows = [[str(i+1), s["nom"], f"{s['angle']:.1f}°",
              f"{s['longueur']:.1f} m", s["cat"].replace("❄️","").replace("🟩","").replace("🛝","").replace("⛷️","").strip(),
-             "Sec ☀️" if s["cond"]=="sec" else "Humide 🌧️",
+             "Sec ☀️" if s["cond"]=="sec" else "Fart 💧",
              f"{s['frottement']:.3f}"] for i, s in enumerate(sections)]
     tbl = ax.table(cellText=rows, colLabels=headers,
                    cellLoc="center", loc="upper center",
@@ -846,10 +851,10 @@ with tab1:
 
         var = "—"
 
-        cond  = cols[5].selectbox("cd", ["sec", "humide"],
+        cond  = cols[5].selectbox("cd", ["sec", "fart"],
                                    index=0 if sec["cond"] == "sec" else 1,
                                    key=f"cd{i}", label_visibility="collapsed",
-                                   format_func=lambda x: "☀️ Sec" if x == "sec" else "🌧️ Hum.")
+                                   format_func=lambda x: "☀️ Sec" if x == "sec" else "💧 Fart")
 
         mu_auto = get_mu(cat, var, cond)
         # La clé inclut cat+cond : quand la surface change, le widget
@@ -1204,7 +1209,7 @@ with tab4:
                     f"{s['longueur']:.1f} m",
                     s["cat"].replace("❄️ ","").replace("🟩 ","")
                             .replace("🛝 ","").replace("⛷️ ","").strip(),
-                    "Sec" if s["cond"]=="sec" else "Humide",
+                    "Sec" if s["cond"]=="sec" else "Fart",
                     f"{s['frottement']:.3f}"]
                    for i, s in enumerate(secs)]
         tbl_s = ax_s.table(cellText=rows_s,

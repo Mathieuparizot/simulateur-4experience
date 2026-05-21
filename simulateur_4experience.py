@@ -151,7 +151,6 @@ SURFACES_DB = {
     "❄️ Neige humide":   {"—": {"sec": 0.18, "fart": 0.18}},
     "❄️ Neige fraîche":  {"—": {"sec": 0.12, "fart": 0.12}},
     "🟩 Mr Snow":         {"—": {"sec": 0.130, "fart": 0.050}},  # mesuré
-    "🟩 Neveplast":       {"—": {"sec": 0.12,  "fart": 0.10}},
     "🟩 PearlSlide":      {"—": {"sec": 0.180, "fart": 0.074}},  # mesuré (=PearSlide)
     "🟩 PearlSnow":       {"—": {"sec": 0.197, "fart": 0.075}},  # mesuré
     "🟩 DreamSlide":      {"—": {"sec": 0.157, "fart": 0.083}},  # mesuré
@@ -165,6 +164,9 @@ def get_mu(cat, var, cond):
     # Compatibilité ascendante : "humide" est désormais "fart"
     if cond == "humide":
         cond = "fart"
+    # Surface ou condition non sélectionnée → μ = 0 (placeholder)
+    if not cat or not cond:
+        return 0.0
     return SURFACES_DB.get(cat, {}).get(var, {}).get(cond, 0.10)
 
 # ════════════════════════════════════════════════════════════════
@@ -845,15 +847,22 @@ with tab1:
                                       label_visibility="collapsed",
                                       step=0.5, format="%.1f", min_value=0.1)
 
-        cat_i = CATS.index(sec["cat"]) if sec["cat"] in CATS else 0
+        cat_i = CATS.index(sec["cat"]) if sec["cat"] in CATS else None
         cat   = cols[4].selectbox("c", CATS, index=cat_i, key=f"c{i}",
-                                   label_visibility="collapsed")
+                                   label_visibility="collapsed",
+                                   placeholder="— Choisir —")
 
         var = "—"
 
-        cond  = cols[5].selectbox("cd", ["sec", "fart"],
-                                   index=0 if sec["cond"] == "sec" else 1,
-                                   key=f"cd{i}", label_visibility="collapsed",
+        cond_options = ["sec", "fart"]
+        if sec["cond"] in cond_options:
+            cond_i = cond_options.index(sec["cond"])
+        else:
+            cond_i = None
+        cond  = cols[5].selectbox("cd", cond_options,
+                                   index=cond_i, key=f"cd{i}",
+                                   label_visibility="collapsed",
+                                   placeholder="—",
                                    format_func=lambda x: "☀️ Sec" if x == "sec" else "💧 Fart")
 
         mu_auto = get_mu(cat, var, cond)
@@ -889,7 +898,15 @@ with tab1:
     st.markdown("---")
 
     # Bouton simulation
-    if st.button("▶  Lancer la simulation", type="primary", use_container_width=True):
+    # Vérifier que toutes les sections sont remplies
+    sec_ok = all(
+        s.get("cat") and s.get("cond")
+        and s.get("angle", 0) != 0 and s.get("longueur", 0) > 0
+        for s in st.session_state.sections
+    )
+    if not sec_ok:
+        st.info("ℹ️ Remplissez toutes les sections (angle, longueur, surface, condition) avant de lancer la simulation.")
+    if st.button("▶  Lancer la simulation", type="primary", use_container_width=True, disabled=not sec_ok):
         with st.spinner("Calcul en cours..."):
             try:
                 res = simuler_piste(secs_new, masse, V0, S, Cx, rho)

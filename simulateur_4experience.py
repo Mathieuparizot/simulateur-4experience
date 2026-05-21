@@ -788,11 +788,24 @@ tab1, tab2, tab3, tab4 = st.tabs([
 with tab1:
 
     DEFAULT = [
-        {"nom":"Départ",     "angle":14.0,"longueur":5.35,  "cat":"❄️ Neige dure",   "var":"—","cond":"sec","mu_ovr":None},
-        {"nom":"Schuss 1",   "angle":11.4,"longueur":56.68, "cat":"❄️ Neige normale", "var":"—","cond":"sec","mu_ovr":None},
-        {"nom":"Transition", "angle":8.5, "longueur":5.22,  "cat":"❄️ Neige glacée",  "var":"—","cond":"sec","mu_ovr":None},
-        {"nom":"Fin",        "angle":4.0, "longueur":7.17,  "cat":"🟩 Neveplast",     "var":"—","cond":"sec","mu_ovr":None},
+        {"nom":"", "angle":0.0, "longueur":0.0, "cat":None, "var":"—", "cond":None, "mu_ovr":None},
     ]
+
+    # Reset forcé à la première ouverture de cette version (efface l'ancien état)
+    APP_VERSION = "v3.2-empty"
+    if st.session_state.get("_app_version") != APP_VERSION:
+        st.session_state.sections = [s.copy() for s in DEFAULT]
+        # Nettoyer toutes les valeurs de widgets résiduelles
+        keys_to_del = [
+            k for k in list(st.session_state.keys())
+            if (len(k) <= 4 and k[0] in "nalc" and any(ch.isdigit() for ch in k))
+            or (k.startswith("m") and "_" in k)
+            or k.startswith(("cd","cv"))
+        ]
+        for k in keys_to_del:
+            try: del st.session_state[k]
+            except KeyError: pass
+        st.session_state["_app_version"] = APP_VERSION
 
     if "sections" not in st.session_state:
         st.session_state.sections = [s.copy() for s in DEFAULT]
@@ -803,16 +816,23 @@ with tab1:
         if st.button("➕ Ajouter section",
                      disabled=len(st.session_state.sections) >= 10,
                      use_container_width=True):
-            c0 = CATS[0]; v0 = list(SURFACES_DB[c0].keys())[0]
             st.session_state.sections.append({
-                "nom": f"Section {len(st.session_state.sections)+1}",
-                "angle": 5.0, "longueur": 10.0,
-                "cat": c0, "var": "—", "cond": "sec", "mu_ovr": None,
+                "nom": "", "angle": 0.0, "longueur": 0.0,
+                "cat": None, "var": "—", "cond": None, "mu_ovr": None,
             })
             st.rerun()
     with cb:
-        if st.button("🔄 Réinitialiser", use_container_width=True):
+        if st.button("🔄 Vider", use_container_width=True):
             st.session_state.sections = [s.copy() for s in DEFAULT]
+            keys_to_del = [
+                k for k in list(st.session_state.keys())
+                if (len(k) <= 4 and k[0] in "nalc" and any(ch.isdigit() for ch in k))
+                or (k.startswith("m") and "_" in k)
+                or k.startswith(("cd","cv"))
+            ]
+            for k in keys_to_del:
+                try: del st.session_state[k]
+                except KeyError: pass
             st.rerun()
 
     st.caption(f"{len(st.session_state.sections)} section(s) — 10 max")
@@ -845,7 +865,7 @@ with tab1:
                                       step=0.1, format="%.1f")
         longu = cols[3].number_input("l", value=float(sec["longueur"]), key=f"l{i}",
                                       label_visibility="collapsed",
-                                      step=0.5, format="%.1f", min_value=0.1)
+                                      step=0.5, format="%.1f", min_value=0.0)
 
         cat_i = CATS.index(sec["cat"]) if sec["cat"] in CATS else None
         cat   = cols[4].selectbox("c", CATS, index=cat_i, key=f"c{i}",
@@ -872,8 +892,9 @@ with tab1:
         mu      = cols[6].number_input(
             "μ", value=float(mu_auto), key=mu_key,
             label_visibility="collapsed", step=0.001, format="%.3f",
-            min_value=0.001, max_value=1.0,
-            help=f"μ auto = {mu_auto:.3f} — modifiable librement")
+            min_value=0.0, max_value=1.0,
+            help=f"μ auto = {mu_auto:.3f} — modifiable librement"
+                 if mu_auto > 0 else "Sélectionnez une surface et une condition")
         mu_ovr  = mu if abs(mu - mu_auto) > 1e-6 else None
 
         if cols[7].button("✕", key=f"d{i}",
